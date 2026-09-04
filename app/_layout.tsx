@@ -4,6 +4,9 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import { colors } from '@/lib/theme';
+// Résolu en .native.ts (registerGlobals LiveKit) ou .web.ts (no-op) selon la
+// plateforme — voir lib/livekit-native-setup.native.ts.
+import '@/lib/livekit-native-setup';
 
 function RootNavigation() {
   const { initializing, session, profile, loadingProfile } = useAuth();

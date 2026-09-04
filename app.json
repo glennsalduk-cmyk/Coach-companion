@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Coach Companion",
-    "slug": "coach-companion",
+    "slug": "glenn-coach-companion",
     "scheme": "coachcompanion",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,7 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.coachcompanion.app"
+      "bundleIdentifier": "com.coachcompanion.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Coach Companion utilise la caméra pour les appels vidéo avec ton coach ou ton coaché.",
+        "NSMicrophoneUsageDescription": "Coach Companion utilise le micro pour les appels vidéo avec ton coach ou ton coaché."
+      },
+      "bitcode": false
     },
     "android": {
       "package": "com.coachcompanion.app",
@@ -20,7 +25,21 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -30,10 +49,25 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Coach Companion utilise la caméra pour les appels vidéo.",
+          "microphonePermission": "Coach Companion utilise le micro pour les appels vidéo."
+        }
+      ],
+      "@livekit/react-native-expo-plugin"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ef9af964-4bd6-4117-900b-e0cc5052ec8b"
+      }
+    },
+    "owner": "coach-companion"
   }
 }

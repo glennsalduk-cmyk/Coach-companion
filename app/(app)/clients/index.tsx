@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { colors, radius, spacing } from '@/lib/theme';
@@ -20,6 +20,7 @@ interface ClientRow extends CoachClient {
 
 export default function Clients() {
   const { profile } = useAuth();
+  const router = useRouter();
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +93,8 @@ export default function Clients() {
             </Text>
           }
           renderItem={({ item }) => (
-            <View
+            <Pressable
+              onPress={() => router.push(`/clients/${item.client_id}`)}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -124,7 +126,7 @@ export default function Clients() {
                   {item.status === 'active' ? 'Actif' : 'Inactif'}
                 </Text>
               </View>
-            </View>
+            </Pressable>
           )}
         />
       )}

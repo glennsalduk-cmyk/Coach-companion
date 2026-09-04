@@ -8,6 +8,7 @@ export type TeamMemberRole = 'admin' | 'coach' | 'assistant';
 export type ClientStatus = 'active' | 'inactive';
 export type ExerciseLevel = 'debutant' | 'intermediaire' | 'avance';
 export type SessionFeeling = 'facile' | 'normal' | 'difficile';
+export type VideoCallStatus = 'ringing' | 'active' | 'ended' | 'declined';
 
 export interface Profile {
   id: string;
@@ -106,4 +107,15 @@ export interface SessionSet {
 // (jointure program_exercises + exercises).
 export interface ProgramExerciseWithDetails extends ProgramExercise {
   exercise: Exercise;
+}
+
+export interface VideoCall {
+  id: string;
+  coach_id: string;
+  client_id: string;
+  room_name: string;
+  status: VideoCallStatus;
+  started_by: string;
+  created_at: string;
+  ended_at: string | null;
 }

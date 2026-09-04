@@ -1,13 +1,71 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, RefreshControl, SafeAreaView, ScrollView, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, SafeAreaView, ScrollView, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { colors, radius, spacing } from '@/lib/theme';
+import { getErrorMessage } from '@/lib/errors';
+import type { VideoCall } from '@/lib/database.types';
+
+interface IncomingCall {
+  id: string;
+  peerName: string;
+  startedByMe: boolean;
+}
 
 export default function Home() {
   const { profile, signOut } = useAuth();
+  const router = useRouter();
   const isCoach = profile?.role === 'coach';
+
+  const [call, setCall] = useState<IncomingCall | null>(null);
+
+  const resolveCall = useCallback(
+    async (row: VideoCall) => {
+      if (!profile) return;
+      if (row.coach_id !== profile.id && row.client_id !== profile.id) return; // défense en profondeur (RLS filtre déjà côté serveur)
+      if (row.status !== 'ringing' && row.status !== 'active') {
+        setCall((prev) => (prev?.id === row.id ? null : prev));
+        return;
+      }
+      const peerId = row.coach_id === profile.id ? row.client_id : row.coach_id;
+      const { data: peerProfile } = await supabase.from('profiles').select('full_name').eq('id', peerId).maybeSingle();
+      setCall({ id: row.id, peerName: peerProfile?.full_name || 'Appel', startedByMe: row.started_by === profile.id });
+    },
+    [profile]
+  );
+
+  useEffect(() => {
+    if (!profile) return;
+    // Chargement initial : un appel déjà en cours (ringing/active) à l'arrivée sur l'écran.
+    supabase
+      .from('video_calls')
+      .select('*')
+      .or(`coach_id.eq.${profile.id},client_id.eq.${profile.id}`)
+      .in('status', ['ringing', 'active'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) void resolveCall(data as VideoCall);
+      });
+
+    const channel = supabase
+      .channel('home-video-calls')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'video_calls' },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as VideoCall | undefined;
+          if (row) void resolveCall(row);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [profile, resolveCall]);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,7 +117,7 @@ export default function Home() {
         setLastSessionAt(lastSession?.performed_at ?? null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur inattendue.');
+      setError(getErrorMessage(err, 'Erreur inattendue.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -92,6 +150,48 @@ export default function Home() {
         <Text style={{ fontSize: 13, color: colors.inkFaint, marginTop: 4, marginBottom: spacing.xl }}>
           {isCoach ? 'Vue coach' : 'Vue coaché'}
         </Text>
+
+        {call && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.md,
+              backgroundColor: colors.tealSoft,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+              marginBottom: spacing.xl,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '700', color: colors.teal, fontSize: 13.5 }}>
+                {call.startedByMe ? 'Appel en attente' : 'Appel entrant'}
+              </Text>
+              <Text style={{ fontSize: 11.5, color: colors.inkFaint, marginTop: 2 }}>Visio avec {call.peerName}</Text>
+            </View>
+            <Pressable
+              onPress={() => router.push(`/calls/${call.id}`)}
+              style={{
+                backgroundColor: colors.teal,
+                borderRadius: radius.pill,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.sm,
+              }}
+            >
+              <Text style={{ color: 'white', fontWeight: '700', fontSize: 12.5 }}>Rejoindre</Text>
+            </Pressable>
+            {!call.startedByMe && (
+              <Pressable
+                onPress={async () => {
+                  await supabase.from('video_calls').update({ status: 'declined' }).eq('id', call.id);
+                  setCall(null);
+                }}
+              >
+                <Text style={{ color: colors.inkFaint, fontSize: 12.5, fontWeight: '600' }}>Ignorer</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {loading ? (
           <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.xl }} />

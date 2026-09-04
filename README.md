@@ -54,6 +54,33 @@ npm start
 Puis choisis une cible : `i` pour le simulateur iOS, `a` pour un émulateur/device Android, ou
 `w` pour le web (`npm run web` lance directement le target web).
 
+### 5. Appels vidéo (visio) — LiveKit
+
+Les appels vidéo (caméra/micro réels, coach ↔ coaché) reposent sur
+[LiveKit](https://livekit.io) : notre backend ne gère que l'autorisation (qui a le droit de
+rejoindre quelle salle), LiveKit gère tout le WebRTC (signalisation, SFU, TURN).
+
+1. Crée un projet sur [LiveKit Cloud](https://cloud.livekit.io) (gratuit pour démarrer).
+2. Récupère l'URL WebSocket du projet (`wss://...livekit.cloud`), la clé API et le secret API
+   (onglet **Settings → Keys**).
+3. Renseigne `EXPO_PUBLIC_LIVEKIT_URL` dans `.env` avec l'URL WebSocket — c'est la seule valeur
+   LiveKit qui va côté client, elle est publique par design.
+4. La clé et le secret API ne vont **jamais** dans `.env` ni dans l'app : ils sont définis comme
+   secrets du projet Supabase, lus uniquement par la fonction Edge qui signe les tokens d'appel :
+   ```bash
+   supabase secrets set LIVEKIT_API_KEY=xxxx LIVEKIT_API_SECRET=xxxx
+   supabase functions deploy mint-livekit-token
+   ```
+5. Applique aussi [`supabase/migrations/0002_video_calls.sql`](supabase/migrations/0002_video_calls.sql)
+   (même méthode que le schéma initial).
+
+**Important** : `@livekit/react-native` embarque des modules natifs (caméra/micro) sans
+équivalent sur le target web — voir [`lib/livekit-native-setup.native.ts`](lib/livekit-native-setup.native.ts)
+et [`app/(app)/calls/[id].web.tsx`](<app/(app)/calls/[id].web.tsx>). La visio ne peut donc être
+testée que sur un simulateur/appareil réel via un **Expo Dev Client** (`eas build --profile
+development`) — le target web affiche un écran de repli explicite. Sans Xcode/Android Studio en
+local, EAS Build (cloud) est le seul moyen de générer ce dev client.
+
 ## Vérification
 
 ```bash
@@ -63,12 +90,15 @@ npm run typecheck
 ## Structure
 
 - `app/` — écrans et routage (Expo Router). `(auth)/` = connexion/inscription/choix de rôle,
-  `(app)/` = zone connectée (accueil, programmes, clients, profil), gardées par la logique de
-  redirection dans [`app/_layout.tsx`](app/_layout.tsx).
+  `(app)/` = zone connectée (accueil, programmes, clients, profil, appels), gardées par la
+  logique de redirection dans [`app/_layout.tsx`](app/_layout.tsx).
 - `lib/` — client Supabase ([`supabase.ts`](lib/supabase.ts)), contexte d'auth
-  ([`auth-context.tsx`](lib/auth-context.tsx)), thème, types de la base.
+  ([`auth-context.tsx`](lib/auth-context.tsx)), client LiveKit ([`livekit.ts`](lib/livekit.ts)),
+  thème, types de la base.
 - `components/` — composants UI partagés.
 - `supabase/migrations/` — schéma SQL versionné (source de vérité de la base).
+- `supabase/functions/` — fonctions Edge (Deno) ; `mint-livekit-token` signe les tokens d'appel
+  vidéo côté serveur.
 
 ## Roadmap (MVP en 3 phases)
 
