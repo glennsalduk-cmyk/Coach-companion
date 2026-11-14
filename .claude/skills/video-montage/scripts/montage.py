@@ -378,6 +378,26 @@ def render_segment(seg, idx, out, W, H, fps, cache, beat=0.4):
         chain.append("format=gbrp,rgbashift=rh=-%d:bh=%d" % (off, off))
     if "strobe" in fx:  # light flicker
         chain.append("eq=brightness='-0.4*gt(sin(t*55),0.2)':eval=frame")
+    if "dutch" in fx:   # slow rocking tilt
+        chain.append("scale=%d:%d,rotate=a='0.035*sin(2*PI*t*0.9)':ow=iw:oh=ih,crop=%d:%d"
+                     % (int(W * 1.12) // 2 * 2, int(H * 1.12) // 2 * 2, W, H))
+    if "focusin" in fx:  # rack focus: lands blurred, snaps sharp
+        chain.append("gblur=sigma=%d:enable='lt(t,0.067)',gblur=sigma=%d:enable='between(t,0.067,0.133)',"
+                     "gblur=sigma=%d:enable='between(t,0.134,0.2)'" % (W // 40, W // 90, W // 250))
+    if "whipin" in fx:   # arrives out of a horizontal whip blur
+        chain.append("avgblur=sizeX=%d:sizeY=1:enable='lt(t,0.067)',avgblur=sizeX=%d:sizeY=1:"
+                     "enable='between(t,0.067,0.133)'" % (W // 6, W // 16))
+    if "whipout" in fx:  # leaves into a horizontal whip blur
+        chain.append("avgblur=sizeX=%d:sizeY=1:enable='between(t,%.4f,%.4f)',avgblur=sizeX=%d:sizeY=1:"
+                     "enable='gte(t,%.4f)'" % (W // 16, dur - 0.134, dur - 0.068, W // 6, dur - 0.067))
+    if "cine" in fx:    # 2.39:1-style bars on this shot
+        bar = int(H * 0.11)
+        chain.append("drawbox=x=0:y=0:w=iw:h=%d:color=black:t=fill,"
+                     "drawbox=x=0:y=ih-%d:w=iw:h=%d:color=black:t=fill" % (bar, bar, bar))
+    if "burn" in fx:    # film-burn: flares in from orange
+        chain.append("fade=t=in:st=0:d=0.2:color=0xFF7A1A")
+    if "burnout" in fx:
+        chain.append("fade=t=out:st=%.4f:d=0.15:color=0xFF7A1A" % max(0, dur - 0.15))
     if "dark" in fx:    # push a bright shot down into the shadows
         chain.append("eq=brightness=-0.05:contrast=1.12")
     if "glow" in fx:    # bloom on the highlights

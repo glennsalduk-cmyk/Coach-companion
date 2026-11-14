@@ -19,6 +19,10 @@ scratch in `montage/work/`, result in `montage/output/`.
 - **Then the drop: the session.** Hard hit on the first gym shot, then lifting only gets faster.
 - **End on the physique** (posing / pump shot, the one place a shot may breathe for 2–4 beats).
   The user's dictated wording was ambiguous ("on quitte sans le physique"); confirm once if not yet settled.
+- **Let the lifting breathe a little**: every bar of the session holds one longer shot of a real
+  exercise (4–8 sixteenths, about 0.4–0.8 s, often with `cine`, `glow`, a slight slow-down or a
+  speed ramp), surrounded by the fast cuts. The tempo itself is right; do not slow the rest.
+- **Detail shots appear once**: the watch in particular is shown a single time.
 - **Every clip is seen very briefly**: ½–1 beat per shot, use as many different clips as possible,
   never the same moment twice.
 - **Dark and aggressive**: crush the image (`fx: dark` on anything bright), play with light
@@ -82,10 +86,9 @@ measurements (measure on fully decoded audio, never with `-ss` on a compressed f
 session.
 
 Lyrics as on-screen text need the words from the user: there is no transcription tool here.
-Text budget for this user: **two or three keywords in the whole film and nothing else** — no
-titles, cards or outro text. Take them from the song's lyrics, one huge word or pair per hit, and
-put them on the film's own strong points (last half-bar before the drop, the drop, the final pose),
-not on the vocal: lyric lines placed by analysis were tried and landed at the wrong moments.
+Text budget for this user: **none for now** — music, transitions and effects only (lyric lines
+placed by analysis landed at the wrong moments; keywords were then dropped too). Add text only if
+the user asks again, and then two or three keywords at most, on the film's own strong points.
 Keep flattering lyric lines off
 the physique shots: the user does not want to look boastful.
 
@@ -173,7 +176,7 @@ Write the EDL to `montage/work/edl.json` (paths are relative to the EDL file or 
 | `grain`, `vignette`, `letterbox` | Grain strength (default 10, 0 = off), vignette (default on), black bars (default on for horizontal only) |
 | `fade_in`, `fade_out` | Seconds, default 0 and 0.8 |
 | segment `in`, `dur`, `speed` | Source start, **timeline** duration, playback speed. Source used = `dur × speed` |
-| segment `fx` | Cut in: `flash` (white), `dip` (from black), `neg` (2-frame negative), `snapin` (hard zoom settling). Cut out: `flashout`, `blackout`, `snapout` (hard zoom into next shot). `glitch` (colour tear on the cut). Light: `pulse` (surge on each beat), `strobe`, `glow` (bloom), `dark` (crush a bright shot). Motion: `punch`, `pull`, `shake`, `zoompulse` (zoom bump on each beat), `trail` (ghosting). Colour: `bw`, `red` (blood-red mono), `rgb` (colour split). Shots of 0.1 s only take colour effects |
+| segment `fx` | Cut in: `flash` (white), `dip` (from black), `neg` (2-frame negative), `snapin` (hard zoom settling). Cut out: `flashout`, `blackout`, `snapout` (hard zoom into next shot). `glitch` (colour tear on the cut). Light: `pulse` (surge on each beat), `strobe`, `glow` (bloom), `dark` (crush a bright shot). Cinematic: `cine` (letterbox bars on that shot), `focusin` (rack focus), `whipin` / `whipout` (whip-pan blur), `burn` / `burnout` (orange film burn), `dutch` (slow rocking tilt). Motion: `punch`, `pull`, `shake`, `zoompulse` (zoom bump on each beat), `trail` (ghosting). Colour: `bw`, `red` (blood-red mono), `rgb` (colour split). Shots of 0.1 s only take colour effects |
 | `beat` | Seconds per beat, used by `pulse`; defaults to `60 / bpm` |
 | segment `audio` | Volume of the clip's own sound, default 0 (muted) |
 | segment `text`, `text_pos`, `text_size`, `text_color`, `text_style` | Overlay for that segment; `center` / `top` / `bottom`; size multiplier; colour; style words combine: `slam` (lands from huge), `push` (keeps growing), `outline` (heavy stroke), `glitch` (red/cyan fringes). Text is auto-shrunk to fit the frame width, so sizes of 3–6 mean "full width" |
