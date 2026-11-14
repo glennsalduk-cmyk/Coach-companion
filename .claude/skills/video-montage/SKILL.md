@@ -69,6 +69,15 @@ Returns `bpm`, `beat` (seconds per beat) and the beat times. Set `music_start` s
 t=0 lands on a beat (usually `first_beat`, or the start of the section you want). With the synth
 score, beat *k* is at `k * 60 / bpm`, the kick enters at beat 8 and the hats at beat 16.
 
+**Distrust the reported BPM.** The detector can lock onto a 4:3 or 2:1 alias (it reported 144 for a
+108 BPM track). Fold the onsets over the candidate beat: if they pile up at three evenly spaced
+points per beat, the real grid is finer — find the smallest tick every onset lands on (the sixteenth
+note) and cut in multiples of that tick. After rendering, re-measure the output's audio against the
+tick and confirm onsets sit within one frame of the cut grid.
+
+If the user's track is shorter than the film (TikTok rips often are, and end with the app's jingle:
+trim it off), loop it by whole 4- or 8-bar phrases with a ~12 ms crossfade and say where the splice is.
+
 **Every segment `dur` must be a multiple of the beat** (½, 1, 2, 4 beats). That is what makes the
 edit feel tight, so compute durations from `beat`, never by eye.
 

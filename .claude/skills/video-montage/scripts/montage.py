@@ -434,11 +434,10 @@ def cmd_render(args):
     # snap every duration to whole frames so the timeline stays on the beat grid
     t, timeline = 0.0, []
     for s in segs:
-        end = round((t + float(s["dur"])) * fps) / fps
-        s["dur"] = end - round(t * fps) / fps
-        timeline.append(round(t * fps) / fps)
-        t = end
-    total = t
+        start, t = round(t * fps) / fps, t + float(s["dur"])  # t stays exact: no drift
+        s["dur"] = max(1.0 / fps, round(t * fps) / fps - start)
+        timeline.append(start)
+    total = round(t * fps) / fps
     cap = min(HARD_CAP, float(edl.get("max_duration", HARD_CAP)))
     if total > cap + 1e-6:
         sys.exit("Timeline is %.2fs, over the %.0fs cap. Trim the EDL." % (total, cap))
@@ -505,7 +504,7 @@ def cmd_render(args):
         if "slam" in style:    # lands from huge to size in a few frames
             fsize = "%d*(1+1.4*pow(max(0,1-(t-%.3f)/0.13),2))" % (size, a)
         elif "push" in style:  # keeps growing while on screen
-            fsize = "%d*(0.86+0.30*(t-%.3f)/%.3f)" % (size, a, max(0.05, b - a))
+            fsize = "%d*(0.72+0.28*(t-%.3f)/%.3f)" % (size, a, max(0.05, b - a))
         color = tx.get("color", "white")
         look_opt = ":shadowcolor=black@0.8:shadowx=3:shadowy=3"
         if "outline" in style:  # hollow letters
