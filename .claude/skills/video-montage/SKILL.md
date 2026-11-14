@@ -15,7 +15,7 @@ scratch in `montage/work/`, result in `montage/output/`.
 ## The user's standing brief (overrides the generic structure in step 4)
 
 - **30 to 45 seconds.** Set `"max_duration": 45` in the EDL.
-- **First 5 seconds = intro**: rapid motivational flashes of trophies, the gym, details, ½-beat cuts.
+- **Chronological story, strictly in this order**: cooking → shakers → shoes → hood up / on the way → arriving at the gym (sign, walls, trophy) → the whole session → physique last. No flash-forwards: gym or physique shots never appear before the arrival. All of the pre-gym part fits before the drop (about 9 s).
 - **Then the drop: the session.** Hard hit on the first gym shot, then lifting only gets faster.
 - **End on the physique** (posing / pump shot, the one place a shot may breathe for 2–4 beats).
   The user's dictated wording was ambiguous ("on quitte sans le physique"); confirm once if not yet settled.
