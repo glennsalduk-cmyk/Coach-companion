@@ -53,7 +53,7 @@ def run(cmd, capture=False):
                          stderr=subprocess.PIPE)
     if res.returncode != 0:
         tail = res.stderr.decode("utf-8", "replace")[-1500:]
-        sys.exit("ffmpeg/ffprobe failed:\n  %s\n%s" % (" ".join(map(str, cmd)), tail))
+        sys.exit("ffmpeg/ffprobe failed (exit %d):\n  %s\n%s" % (res.returncode, " ".join(map(str, cmd))[-600:], tail))
     return res.stdout
 
 
@@ -500,24 +500,36 @@ def cmd_render(args):
         ypos = {"top": "h*0.16", "bottom": "h*0.80-text_h"}.get(
             tx.get("pos", "center"), "(h-text_h)/2")
         style = (tx.get("style") or "").split()
-        fsize = str(size)
-        if "slam" in style:    # lands from huge to size in a few frames
-            fsize = "%d*(1+1.4*pow(max(0,1-(t-%.3f)/0.13),2))" % (size, a)
+        # Animated sizes are drawn as a chain of fixed-size layers, one per step: changing
+        # drawtext's fontsize per frame crashes libfreetype when many texts are stacked.
+        fr = 1.0 / fps
+        if "slam" in style:    # lands from huge to size in four frames
+            steps = [(a + i * fr, a + (i + 1) * fr, 1 + 1.4 * (1 - i / 4.0) ** 2) for i in range(4)]
+            steps.append((a + 4 * fr, b, 1.0))
         elif "push" in style:  # keeps growing while on screen
-            fsize = "%d*(0.72+0.28*(t-%.3f)/%.3f)" % (size, a, max(0.05, b - a))
+            n = max(1, int(round((b - a) / (3 * fr))))
+            steps = [(a + i * (b - a) / n, a + (i + 1) * (b - a) / n,
+                      0.72 + 0.28 * i / max(1, n - 1)) for i in range(n)]
+        else:
+            steps = [(a, b, 1.0)]
         color = tx.get("color", "white")
-        look_opt = ":shadowcolor=black@0.8:shadowx=3:shadowy=3"
-        if "outline" in style:  # hollow letters
-            look_opt = ":borderw=%d:bordercolor=%s" % (max(3, size // 28), color)
-            color = "white@0.0"
-        layers = [(0, color, look_opt)]
-        if "glitch" in style:  # red / cyan fringes behind the main text
-            off = max(2, size // 22)
-            layers = [(-off, "red@0.8", ""), (off, "cyan@0.8", "")] + layers
-        for dx, col, opt in layers:
-            vf.append("drawtext=textfile='%s'%s:fontsize='%s':fontcolor=%s:line_spacing=%d:"
-                      "x=(w-text_w)/2+%d:y=%s%s:enable='between(t,%.3f,%.3f)'"
-                      % (tf, font, fsize, col, size // 6, dx, ypos, opt, a, b - 0.001))
+        for t0, t1, factor in steps:
+            if t1 <= t0 or t0 >= b:
+                continue
+            fs = int(size * factor)
+            look_opt = ":shadowcolor=black@0.8:shadowx=3:shadowy=3"
+            col = color
+            if "outline" in style:  # heavy stroke
+                look_opt = ":borderw=%d:bordercolor=%s" % (max(3, fs // 28), color)
+                col = "white@0.0"
+            layers = [(0, col, look_opt)]
+            if "glitch" in style:  # red / cyan fringes behind the main text
+                off = max(2, fs // 22)
+                layers = [(-off, "red@0.8", ""), (off, "cyan@0.8", "")] + layers
+            for dx, c, opt in layers:
+                vf.append("drawtext=textfile='%s'%s:fontsize=%d:fontcolor=%s:line_spacing=%d:"
+                          "x=(w-text_w)/2+%d:y=%s%s:enable='between(t,%.4f,%.4f)'"
+                          % (tf, font, fs, c, fs // 6, dx, ypos, opt, t0, min(t1, b) - 0.0005))
     if edl.get("vignette", True):
         vf.append("vignette=angle=PI/4.2")
     grain = int(edl.get("grain", 10))

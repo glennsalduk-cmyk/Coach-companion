@@ -82,6 +82,13 @@ measurements (measure on fully decoded audio, never with `-ss` on a compressed f
 session.
 
 Lyrics as on-screen text need the words from the user: there is no transcription tool here.
+When the user asks for lyrics, they are the **only** text (no titles, cards or outro text of your
+own). Split each line into 2–3 word chunks that slam in one after another, last chunk in red.
+Without hearing the vocal, place lines from structure: count bars before the drop against the
+number of verse lines (here 8 lines = 16 bars, two bars per line), find repeating phrase entries
+with the centre-channel harmonic energy per sixteenth, say which placements are deduced rather than
+heard, and ask the user to report any line that is early or late. Keep flattering lyric lines off
+the physique shots: the user does not want to look boastful.
 
 If the user's track is shorter than the film (TikTok rips often are, and end with the app's jingle:
 trim it off), loop it by whole 4- or 8-bar phrases with a ~12 ms crossfade and say where the splice is.
