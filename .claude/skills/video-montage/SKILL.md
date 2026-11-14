@@ -75,6 +75,14 @@ points per beat, the real grid is finer — find the smallest tick every onset l
 note) and cut in multiples of that tick. After rendering, re-measure the output's audio against the
 tick and confirm onsets sit within one frame of the cut grid.
 
+Always decode the track to WAV first (`ffmpeg -i track.mp3 -c:a pcm_s16le track.wav`) and point the
+EDL at the WAV: seeking inside an MP3 is not sample-accurate, for the render or for your own
+measurements (measure on fully decoded audio, never with `-ss` on a compressed file). Find the drop
+(the bass re-entering after a breakdown) and set `music_start` so it lands on the first frame of the
+session.
+
+Lyrics as on-screen text need the words from the user: there is no transcription tool here.
+
 If the user's track is shorter than the film (TikTok rips often are, and end with the app's jingle:
 trim it off), loop it by whole 4- or 8-bar phrases with a ~12 ms crossfade and say where the splice is.
 
