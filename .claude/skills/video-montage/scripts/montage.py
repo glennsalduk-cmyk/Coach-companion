@@ -270,15 +270,15 @@ def render_segment(seg, idx, out, W, H, fps, cache, beat=0.4):
     if "strobe" in fx:  # light flicker
         chain.append("eq=brightness='-0.4*gt(sin(t*55),0.2)':eval=frame")
     if "dark" in fx:    # push a bright shot down into the shadows
-        chain.append("eq=brightness=-0.12:contrast=1.2:gamma=0.85")
+        chain.append("eq=brightness=-0.05:contrast=1.12")
     if "glow" in fx:    # bloom on the highlights
-        chain.append("split[ga%d][gb%d];[gb%d]gblur=sigma=%d[gc%d];"
+        chain.append("format=gbrp,split[ga%d][gb%d];[gb%d]gblur=sigma=%d[gc%d];"
                      "[ga%d][gc%d]blend=all_mode=screen:all_opacity=0.45"
                      % (idx, idx, idx, max(6, W // 60), idx, idx, idx))
     if "pulse" in fx:   # light surging on every beat
         chain.append("eq=brightness='0.22*exp(-9*mod(t,%.5f))':eval=frame" % beat)
     if "neg" in fx:     # two-frame negative hit on the cut
-        chain.append("negate=enable='lt(t,%.4f)'" % (2.0 / fps))
+        chain.append("format=gbrp,negate=enable='lt(t,%.4f)'" % (2.0 / fps))
     if "flashout" in fx:  # burn to white into the next shot
         chain.append("fade=t=out:st=%.4f:d=0.12:color=white" % max(0, dur - 0.12))
     if "blackout" in fx:  # snap to black into the next shot
@@ -420,7 +420,8 @@ def cmd_render(args):
          "-filter_complex", "[0:v]%s[v];%s" % (",".join(vf), af),
          "-map", "[v]", "-map", "[a]", "-t", "%.4f" % total,
          "-c:v", "libx264", "-preset", "veryfast" if args.preview else "slow",
-         "-crf", "26" if args.preview else "18", "-pix_fmt", "yuv420p",
+         "-crf", "26" if args.preview else "18", "-maxrate", "14M", "-bufsize", "28M",
+         "-pix_fmt", "yuv420p",
          "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", out])
     final = ffprobe(out)
     print(json.dumps({"output": out, "duration": final["duration"],
