@@ -43,3 +43,6 @@ yarn-error.*
 
 # Supabase CLI local state
 supabase/.temp/
+
+# video-montage skill: raw clips, music and renders stay local
+montage/
