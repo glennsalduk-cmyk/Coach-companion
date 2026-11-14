@@ -216,7 +216,7 @@ TONEMAP = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=habl
            "zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
 
 
-def render_segment(seg, idx, out, W, H, fps, cache):
+def render_segment(seg, idx, out, W, H, fps, cache, beat=0.4):
     dur = float(seg["dur"])
     nframes = max(1, round(dur * fps))
     if seg.get("black"):
@@ -244,14 +244,20 @@ def render_segment(seg, idx, out, W, H, fps, cache):
     chain += ["setpts=(PTS-STARTPTS)/%.5f" % speed, "fps=%d" % fps,
               "scale=%d:%d:force_original_aspect_ratio=increase" % (W, H),
               "crop=%d:%d" % (W, H)]
-    if "punch" in fx:   # slow push-in
-        chain.append("scale=%d:%d,zoompan=z='1+0.12*on/%d':x='iw/2-(iw/zoom/2)':"
+    k = max(2, round(0.2 * fps))  # frames of a snap zoom
+    zoom = []
+    if "punch" in fx:    # slow push-in
+        zoom.append("0.12*on/%d" % nframes)
+    if "pull" in fx:     # slow pull-out
+        zoom.append("0.12*(1-on/%d)" % nframes)
+    if "snapin" in fx:   # arrive from a hard zoom
+        zoom.append("0.45*pow(max(0,1-on/%d),2)" % k)
+    if "snapout" in fx:  # leave on a hard zoom into the next shot
+        zoom.append("0.55*pow(max(0,(on-%d)/%d),2)" % (nframes - k, k))
+    if zoom:
+        chain.append("scale=%d:%d,zoompan=z='1+%s':x='iw/2-(iw/zoom/2)':"
                      "y='ih/2-(ih/zoom/2)':d=1:s=%dx%d:fps=%d"
-                     % (W * 2, H * 2, nframes, W, H, fps))
-    if "pull" in fx:    # slow pull-out
-        chain.append("scale=%d:%d,zoompan=z='1.12-0.12*on/%d':x='iw/2-(iw/zoom/2)':"
-                     "y='ih/2-(ih/zoom/2)':d=1:s=%dx%d:fps=%d"
-                     % (W * 2, H * 2, nframes, W, H, fps))
+                     % (W * 2, H * 2, "+".join(zoom), W, H, fps))
     if "shake" in fx:   # handheld impact shake
         chain.append("scale=%d:%d,crop=%d:%d:x='(iw-ow)/2+(iw-ow)/2*sin(t*47)':"
                      "y='(ih-oh)/2+(ih-oh)/2*sin(t*61+1)'"
@@ -263,6 +269,20 @@ def render_segment(seg, idx, out, W, H, fps, cache):
         chain.append("format=gbrp,rgbashift=rh=-%d:bh=%d" % (off, off))
     if "strobe" in fx:  # light flicker
         chain.append("eq=brightness='-0.4*gt(sin(t*55),0.2)':eval=frame")
+    if "dark" in fx:    # push a bright shot down into the shadows
+        chain.append("eq=brightness=-0.12:contrast=1.2:gamma=0.85")
+    if "glow" in fx:    # bloom on the highlights
+        chain.append("split[ga%d][gb%d];[gb%d]gblur=sigma=%d[gc%d];"
+                     "[ga%d][gc%d]blend=all_mode=screen:all_opacity=0.45"
+                     % (idx, idx, idx, max(6, W // 60), idx, idx, idx))
+    if "pulse" in fx:   # light surging on every beat
+        chain.append("eq=brightness='0.22*exp(-9*mod(t,%.5f))':eval=frame" % beat)
+    if "neg" in fx:     # two-frame negative hit on the cut
+        chain.append("negate=enable='lt(t,%.4f)'" % (2.0 / fps))
+    if "flashout" in fx:  # burn to white into the next shot
+        chain.append("fade=t=out:st=%.4f:d=0.12:color=white" % max(0, dur - 0.12))
+    if "blackout" in fx:  # snap to black into the next shot
+        chain.append("fade=t=out:st=%.4f:d=0.12" % max(0, dur - 0.12))
     if "flash" in fx:   # white flash on the cut
         chain.append("fade=t=in:st=0:d=0.14:color=white")
     if "dip" in fx:     # dip from black on the cut
@@ -317,12 +337,13 @@ def cmd_render(args):
     work = os.path.join(args.work, "render")
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
+    beat = float(edl.get("beat") or 60.0 / float(edl.get("bpm", 150)))
     cache, parts = {}, []
     for i, s in enumerate(segs):
         if not s.get("black"):
             s["src"] = s["src"] if os.path.isabs(s["src"]) else os.path.join(base, s["src"])
         part = os.path.join(work, "seg_%03d.mkv" % i)
-        render_segment(s, i, part, W, H, fps, cache)
+        render_segment(s, i, part, W, H, fps, cache, beat)
         parts.append(part)
         print("  segment %d/%d" % (i + 1, len(segs)), file=sys.stderr)
     listfile = os.path.join(work, "list.txt")

@@ -12,6 +12,21 @@ building from a quiet morning to the heaviest lift. Everything runs through
 Folders (all git-ignored): clips in `montage/input/`, optional music in `montage/music/`,
 scratch in `montage/work/`, result in `montage/output/`.
 
+## The user's standing brief (overrides the generic structure in step 4)
+
+- **30 to 45 seconds.** Set `"max_duration": 45` in the EDL.
+- **First 5 seconds = intro**: rapid motivational flashes of trophies, the gym, details, ½-beat cuts.
+- **Then the drop: the session.** Hard hit on the first gym shot, then lifting only gets faster.
+- **End on the physique** (posing / pump shot, the one place a shot may breathe for 2–4 beats).
+  The user's dictated wording was ambiguous ("on quitte sans le physique"); confirm once if not yet settled.
+- **Every clip is seen very briefly**: ½–1 beat per shot, use as many different clips as possible,
+  never the same moment twice.
+- **Dark and aggressive**: crush the image (`fx: dark` on anything bright), play with light
+  (`pulse`, `strobe`, `glow`, `flash`), and put a transition on almost every cut. Editing intensity
+  is the priority; restraint is not wanted here.
+- The user adds their own music afterwards: cut to a fixed grid (default 150 BPM synth score as a
+  guide track), tell them the BPM used, and offer to re-cut to their track's tempo if they send it.
+
 ## 1. Gather
 
 - Put every clip the user sent into `montage/input/`. If there are none yet, ask for them and stop.
@@ -90,6 +105,16 @@ if they have not said) and borrow the grammar, never the footage, wording or lyr
 For the user's day-in-the-life film, the morning parts suit Night green pacing and the gym climax
 suits Countdown pacing; keep a single look across the whole film.
 
+Transition recipes (pair the out-effect of one shot with the in-effect of the next):
+
+- **Zoom-through**: `snapout` → `snapin`. The default cut inside the session.
+- **White hit**: `flashout` → `flash`. For drops and the intro → session switch.
+- **Black hit**: `blackout` → `dip`, or a ½-beat black card in between.
+- **Speed ramp**: split one moment in two segments, `speed: 3` for ½ beat then `speed: 0.5` for
+  2 beats starting where the first ended (60 fps source only for the slow half).
+- **Impact**: `neg` + `shake` on lockouts and plates hitting the floor.
+- Vary them; never use the same transition three cuts in a row.
+
 Write the EDL to `montage/work/edl.json` (paths are relative to the EDL file or absolute):
 
 ```json
@@ -117,7 +142,8 @@ Write the EDL to `montage/work/edl.json` (paths are relative to the EDL file or 
 | `grain`, `vignette`, `letterbox` | Grain strength (default 10, 0 = off), vignette (default on), black bars (default on for horizontal only) |
 | `fade_in`, `fade_out` | Seconds, default 0 and 0.8 |
 | segment `in`, `dur`, `speed` | Source start, **timeline** duration, playback speed. Source used = `dur × speed` |
-| segment `fx` | `flash`, `dip`, `punch`, `pull`, `shake`, `bw`, `strobe` (light flicker), `rgb` (colour split) |
+| segment `fx` | Cut in: `flash` (white), `dip` (from black), `neg` (2-frame negative), `snapin` (hard zoom settling). Cut out: `flashout`, `blackout`, `snapout` (hard zoom into next shot). Light: `pulse` (surge on each beat), `strobe`, `glow` (bloom), `dark` (crush a bright shot). Motion: `punch`, `pull`, `shake`. Colour: `bw`, `rgb` (colour split) |
+| `beat` | Seconds per beat, used by `pulse`; defaults to `60 / bpm` |
 | segment `audio` | Volume of the clip's own sound, default 0 (muted) |
 | segment `text`, `text_pos`, `text_size`, `text_color`, `text_style` | Overlay for that segment; `center` / `top` / `bottom`; size multiplier; colour; `glitch` for red/cyan fringes |
 | `titles` | Free overlays not tied to a cut: `[{"text", "at", "dur", "pos", "size", "color", "style"}]`, `at` in timeline seconds |
