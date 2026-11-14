@@ -76,6 +76,20 @@ Rules that make it work:
 - Keep real sound (`"audio": 0.4–0.8`) on shots where it hits: sizzle, shaker rattle, plates, a grunt.
   Everything else stays silent under the music.
 
+### Style references
+
+The user shared three TikTok edits as the target feel. Pick one direction per film (or ask which,
+if they have not said) and borrow the grammar, never the footage, wording or lyrics:
+
+| Direction | What defines it | How to get it |
+|---|---|---|
+| **Night green** (vertical) | Deep green-teal grade, hoodie silhouette, slow confident cuts of 2 beats at ~90 BPM, shots framed through foreground objects, establishing shots (street lamp, gym sign), hand and weight-pin details, one small tagline held all film | `look: green`, `tagline`, few effects, `punch` on details |
+| **Countdown** (horizontal) | Near-black gym shots alternating with huge one-word cards on black, ½–1 beat each at ~160 BPM, light flicker, colour-fringed text, cards growing as it builds, ending on a hero shot under one hard light | black cards with `text_style: glitch` and rising `text_size`, `strobe`, `rgb`, `look: dark` or `noir` |
+| **Blue lyric** (horizontal) | Cold blue grade, low wide-angle shots, long slow-motion takes with very few cuts, words landing one by one on the beat in white with occasional dark red | `look: steel`, `speed: 0.5`, top-level `titles` timed on beats, `color: 0x8B0000` for accents |
+
+For the user's day-in-the-life film, the morning parts suit Night green pacing and the gym climax
+suits Countdown pacing; keep a single look across the whole film.
+
 Write the EDL to `montage/work/edl.json` (paths are relative to the EDL file or absolute):
 
 ```json
@@ -98,14 +112,16 @@ Write the EDL to `montage/work/edl.json` (paths are relative to the EDL file or 
 | Field | Meaning |
 |---|---|
 | `format` | `vertical` 1080×1920 (default), `horizontal` 1920×1080, `square`. Clips are centre-cropped to fill |
-| `look` | `dark` (default, teal shadows), `steel` (cold blue), `noir` (black and white), `none` |
+| `look` | `dark` (default, teal shadows), `green` (night green-teal), `steel` (cold blue), `noir` (black and white), `none` |
 | `music`, `music_start`, `music_volume` | Track, offset into it in seconds, gain. Omit `music` and set `bpm` (default 150) for the synth score |
 | `grain`, `vignette`, `letterbox` | Grain strength (default 10, 0 = off), vignette (default on), black bars (default on for horizontal only) |
 | `fade_in`, `fade_out` | Seconds, default 0 and 0.8 |
 | segment `in`, `dur`, `speed` | Source start, **timeline** duration, playback speed. Source used = `dur × speed` |
-| segment `fx` | `flash`, `dip`, `punch`, `pull`, `shake`, `bw` |
+| segment `fx` | `flash`, `dip`, `punch`, `pull`, `shake`, `bw`, `strobe` (light flicker), `rgb` (colour split) |
 | segment `audio` | Volume of the clip's own sound, default 0 (muted) |
-| segment `text`, `text_pos`, `text_size` | Overlay for that segment; `center` / `top` / `bottom`; size multiplier |
+| segment `text`, `text_pos`, `text_size`, `text_color`, `text_style` | Overlay for that segment; `center` / `top` / `bottom`; size multiplier; colour; `glitch` for red/cyan fringes |
+| `titles` | Free overlays not tied to a cut: `[{"text", "at", "dur", "pos", "size", "color", "style"}]`, `at` in timeline seconds |
+| `tagline`, `tagline_from` | Small centred line held over the whole film (outro excluded), and when it appears |
 | `{"black": true, "dur": …}` | Black card, usually with `text` |
 
 ## 5. Render, check, deliver

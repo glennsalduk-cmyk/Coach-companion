@@ -33,6 +33,10 @@ LOOKS = {
     "dark": "eq=contrast=1.22:brightness=-0.05:saturation=0.62:gamma=0.95,"
             "colorbalance=rs=-0.06:bs=0.07:rh=0.05:bh=-0.05,"
             "curves=all='0/0 0.12/0.05 0.5/0.47 1/0.97'",
+    # deep green-teal, sodium-lamp gym at night
+    "green": "eq=contrast=1.20:brightness=-0.06:saturation=0.55:gamma=0.95,"
+             "colorbalance=rs=-0.08:gs=0.05:bs=0.01:rm=-0.04:gm=0.03:rh=0.04:bh=-0.06,"
+             "curves=all='0/0 0.12/0.04 0.5/0.46 1/0.96'",
     # cold blue steel
     "steel": "eq=contrast=1.25:brightness=-0.06:saturation=0.45:gamma=0.94,"
              "colorbalance=rs=-0.10:bs=0.12:rm=-0.04:bm=0.05,"
@@ -254,6 +258,11 @@ def render_segment(seg, idx, out, W, H, fps, cache):
                      % (int(W * 1.05) // 2 * 2, int(H * 1.05) // 2 * 2, W, H))
     if "bw" in fx:
         chain.append("hue=s=0")
+    if "rgb" in fx:     # chromatic split
+        off = max(2, W // 180)
+        chain.append("format=gbrp,rgbashift=rh=-%d:bh=%d" % (off, off))
+    if "strobe" in fx:  # light flicker
+        chain.append("eq=brightness='-0.4*gt(sin(t*55),0.2)':eval=frame")
     if "flash" in fx:   # white flash on the cut
         chain.append("fade=t=in:st=0:d=0.14:color=white")
     if "dip" in fx:     # dip from black on the cut
@@ -330,20 +339,39 @@ def cmd_render(args):
     # final pass: grade, text, vignette, grain, letterbox, fades, music
     vf = [LOOKS[look]]
     font = font_opt(edl.get("font"))
+    texts = []
     for i, s in enumerate(segs):
-        if not s.get("text"):
-            continue
+        if s.get("text"):
+            texts.append({"text": s["text"], "at": timeline[i], "dur": s["dur"],
+                          "pos": s.get("text_pos", "center"), "size": s.get("text_size", 1.0),
+                          "color": s.get("text_color", "white"),
+                          "style": s.get("text_style")})
+    texts += edl.get("titles", [])
+    if edl.get("tagline"):  # small line held over the whole film, outro excluded
+        end = timeline[-1] if outro else total
+        texts.append({"text": edl["tagline"], "at": float(edl.get("tagline_from", 0.0)),
+                      "dur": end - float(edl.get("tagline_from", 0.0)), "size": 0.32,
+                      "color": "white@0.75"})
+    for i, tx in enumerate(texts):
         tf = os.path.join(work, "text_%03d.txt" % i)
         with open(tf, "w") as f:
-            f.write(s["text"])
-        a, b = timeline[i], timeline[i] + s["dur"]
-        size = int(W * 0.085 * float(s.get("text_size", 1.0)))
+            f.write(tx["text"])
+        a = float(tx["at"])
+        b = min(total, a + float(tx["dur"]))
+        size = int(W * 0.085 * float(tx.get("size", 1.0)))
         ypos = {"top": "h*0.16", "bottom": "h*0.80-text_h"}.get(
-            s.get("text_pos", "center"), "(h-text_h)/2")
-        vf.append("drawtext=textfile='%s'%s:fontsize=%d:fontcolor=white:line_spacing=%d:"
-                  "x=(w-text_w)/2:y=%s:shadowcolor=black@0.8:shadowx=3:shadowy=3:"
-                  "alpha='min(1,(t-%.3f)/0.12)':enable='between(t,%.3f,%.3f)'"
-                  % (tf, font, size, size // 5, ypos, a, a, b - 0.001))
+            tx.get("pos", "center"), "(h-text_h)/2")
+        layers = [(0, tx.get("color", "white"), True)]
+        if tx.get("style") == "glitch":  # red / cyan fringes behind the main text
+            off = max(2, size // 22)
+            layers = [(-off, "red@0.8", False), (off, "cyan@0.8", False)] + layers
+        for dx, color, shadow in layers:
+            vf.append("drawtext=textfile='%s'%s:fontsize=%d:fontcolor=%s:line_spacing=%d:"
+                      "x=(w-text_w)/2+%d:y=%s%s:alpha='min(1,(t-%.3f)/0.10)':"
+                      "enable='between(t,%.3f,%.3f)'"
+                      % (tf, font, size, color, size // 5, dx, ypos,
+                         ":shadowcolor=black@0.8:shadowx=3:shadowy=3" if shadow else "",
+                         a, a, b - 0.001))
     if edl.get("vignette", True):
         vf.append("vignette=angle=PI/4.2")
     grain = int(edl.get("grain", 10))
