@@ -24,6 +24,14 @@ scratch in `montage/work/`, result in `montage/output/`.
 - **Dark and aggressive**: crush the image (`fx: dark` on anything bright), play with light
   (`pulse`, `strobe`, `glow`, `flash`), and put a transition on almost every cut. Editing intensity
   is the priority; restraint is not wanted here.
+- **Big motivational text that slams in** ("mode push"): full-width words (`size` 3–6, `slam`) over
+  the footage on the first beat of a bar, one or two words each, French, alternating white / red
+  (`0xE01010`) and plain / `glitch` / `outline`; a slower `push` line over the physique.
+- **Pace**: ½-beat cuts (0.2 s at 150 BPM) are the norm in the session, with ¼-beat (0.1 s) bursts
+  of 8 shots at the end of every other bar. Use a small generator script in `montage/work/` to
+  build EDLs of 100+ segments from a pool of moments rather than writing them by hand.
+- The gym footage is backlit (dark clothes under white ceiling lights): `dark` on gym shots, never on
+  the physique or detail shots, or the subject disappears.
 - The user adds their own music afterwards: cut to a fixed grid (default 150 BPM synth score as a
   guide track), tell them the BPM used, and offer to re-cut to their track's tempo if they send it.
 
@@ -142,10 +150,11 @@ Write the EDL to `montage/work/edl.json` (paths are relative to the EDL file or 
 | `grain`, `vignette`, `letterbox` | Grain strength (default 10, 0 = off), vignette (default on), black bars (default on for horizontal only) |
 | `fade_in`, `fade_out` | Seconds, default 0 and 0.8 |
 | segment `in`, `dur`, `speed` | Source start, **timeline** duration, playback speed. Source used = `dur × speed` |
-| segment `fx` | Cut in: `flash` (white), `dip` (from black), `neg` (2-frame negative), `snapin` (hard zoom settling). Cut out: `flashout`, `blackout`, `snapout` (hard zoom into next shot). Light: `pulse` (surge on each beat), `strobe`, `glow` (bloom), `dark` (crush a bright shot). Motion: `punch`, `pull`, `shake`. Colour: `bw`, `rgb` (colour split) |
+| segment `fx` | Cut in: `flash` (white), `dip` (from black), `neg` (2-frame negative), `snapin` (hard zoom settling). Cut out: `flashout`, `blackout`, `snapout` (hard zoom into next shot). `glitch` (colour tear on the cut). Light: `pulse` (surge on each beat), `strobe`, `glow` (bloom), `dark` (crush a bright shot). Motion: `punch`, `pull`, `shake`, `zoompulse` (zoom bump on each beat), `trail` (ghosting). Colour: `bw`, `red` (blood-red mono), `rgb` (colour split). Shots of 0.1 s only take colour effects |
 | `beat` | Seconds per beat, used by `pulse`; defaults to `60 / bpm` |
 | segment `audio` | Volume of the clip's own sound, default 0 (muted) |
-| segment `text`, `text_pos`, `text_size`, `text_color`, `text_style` | Overlay for that segment; `center` / `top` / `bottom`; size multiplier; colour; `glitch` for red/cyan fringes |
+| segment `text`, `text_pos`, `text_size`, `text_color`, `text_style` | Overlay for that segment; `center` / `top` / `bottom`; size multiplier; colour; style words combine: `slam` (lands from huge), `push` (keeps growing), `outline` (heavy stroke), `glitch` (red/cyan fringes). Text is auto-shrunk to fit the frame width, so sizes of 3–6 mean "full width" |
+| `score` | Sections of the built-in score: `{"build": s, "drop": s, "break": s}` — sparse intro, riser from `build`, full drums/808/cowbell from `drop`, half-time from `break`. Align them with the film's parts |
 | `titles` | Free overlays not tied to a cut: `[{"text", "at", "dur", "pos", "size", "color", "style"}]`, `at` in timeline seconds |
 | `tagline`, `tagline_from` | Small centred line held over the whole film (outro excluded), and when it appears |
 | `{"black": true, "dur": …}` | Black card, usually with `text` |

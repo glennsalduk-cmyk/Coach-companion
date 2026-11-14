@@ -193,6 +193,105 @@ def synth_score(path, bpm, duration):
          "-af", "aecho=0.8:0.5:60:0.25,alimiter=limit=0.9", "-ac", "2", path])
 
 
+def synth_score_np(path, bpm, duration, build, drop, brk):
+    """Original phonk-style score (needs numpy): sparse intro, build with riser from `build`,
+    full drums + 808 + cowbell from `drop`, half-time from `brk`. Beat k is at k*60/bpm."""
+    import wave
+    import numpy as np
+    sr = 44100
+    b = 60.0 / bpm
+    n = int(duration * sr)
+    out = np.zeros(n + sr)
+    rng = np.random.default_rng(7)
+
+    def add(sig, at, gain=1.0):
+        i = int(at * sr)
+        if 0 <= i < n:
+            out[i:i + len(sig)] += gain * sig[:len(out) - i]
+
+    def tt(length):
+        return np.arange(int(length * sr)) / sr
+
+    t = tt(0.45)
+    kick = np.tanh(3 * np.sin(2 * np.pi * (45 * t + 110 / 30 * (1 - np.exp(-30 * t))))
+                   * np.exp(-7 * t))
+    t = tt(0.05)
+    hat = np.diff(rng.standard_normal(len(t) + 1)) * np.exp(-90 * t) * 0.5
+    t = tt(0.25)
+    clap = rng.standard_normal(len(t)) * (np.exp(-30 * t) + 0.6 * np.exp(-30 * np.abs(t - 0.012))
+                                           + 0.5 * np.exp(-30 * np.abs(t - 0.024))) * 0.35
+    clap = np.convolve(clap, np.ones(6) / 6, "same")
+
+    def bass(freq, length):
+        t = tt(length)
+        ph = 2 * np.pi * (freq * t + freq * 0.5 / 18 * (1 - np.exp(-18 * t)))
+        return np.tanh(4 * np.sin(ph) * np.exp(-2.2 * t / max(length, 0.2))) * 0.6
+
+    def bell(freq, length=0.3):
+        t = tt(length)
+        sq = np.sign(np.sin(2 * np.pi * freq * t)) + 0.8 * np.sign(np.sin(2 * np.pi * freq * 1.48 * t))
+        return np.convolve(sq * np.exp(-13 * t), np.ones(5) / 5, "same") * 0.5
+
+    A, C, D, E, G = 880.0, 1046.5, 1174.7, 1318.5, 1568.0
+    mel = [[A, A, C, A, E, D, C, A], [A, A, C, A, G, E, D, C],
+           [A, A, C, A, E, D, C, A], [D, D, E, D, C, A, G / 2, A]]
+    roots = [55.0, 55.0, 65.4, 49.0]
+    t = np.arange(len(out)) / sr
+    out += 0.10 * np.sin(2 * np.pi * 55 * t) * (0.7 + 0.3 * np.sin(2 * np.pi * 0.11 * t))
+    out += 0.05 * np.sin(2 * np.pi * 82.4 * t)
+    beats = int(duration / b) + 1
+    for k in range(beats):
+        at, bar, pos = k * b, k // 4, k % 4
+        if at < build:                       # intro: one kick per bar, sparse bells
+            if pos == 0:
+                add(kick, at, 0.7)
+            add(bell(mel[bar % 4][pos * 2]), at, 0.10)
+        elif at < drop:                      # build: four on the floor, hats, snare roll
+            add(kick, at, 0.8)
+            for e in range(2):
+                add(hat, at + e * b / 2, 0.5)
+                add(bell(mel[bar % 4][pos * 2 + e]), at + e * b / 2, 0.14)
+            if at >= drop - 4 * b:
+                div = 2 if at < drop - 2 * b else 4
+                for e in range(div):
+                    add(clap, at + e * b / div, 0.5 + 0.4 * (at - (drop - 4 * b)) / (4 * b))
+        elif at < brk:                       # drop
+            for e in range(2):
+                step = pos * 2 + e
+                if step in (0, 3, 6):
+                    add(kick, at + e * b / 2, 1.0)
+                    add(bass(roots[bar % 4], b * 1.4), at + e * b / 2, 0.9)
+                add(bell(mel[bar % 4][step]), at + e * b / 2, 0.26)
+            if pos in (1, 3):
+                add(clap, at, 0.9)
+            roll = 8 if (bar % 4 == 3 and pos == 3) else 4
+            for e in range(roll):
+                add(hat, at + e * b / roll, 0.8 if e % 2 == 0 else 0.45)
+        else:                                # half-time outro
+            if pos == 0:
+                add(kick, at, 1.0)
+                add(bass(roots[bar % 4], b * 3.5), at, 1.0)
+            if pos == 2:
+                add(clap, at, 0.9)
+            add(bell(mel[bar % 4][pos * 2] / 2, 0.6), at, 0.22)
+            for e in range(2):
+                add(hat, at + e * b / 2, 0.5)
+    if drop > 0:                             # riser into the drop, then a gap
+        ln = int(min(drop, 4 * b) * sr)
+        r = np.diff(rng.standard_normal(ln + 1)) * np.linspace(0, 1, ln) ** 2 * 0.35
+        add(r, drop - ln / sr)
+        g0, g1 = int((drop - b / 2) * sr), int(drop * sr)
+        out[g0:g1] *= np.linspace(1, 0.05, g1 - g0)
+    out = np.tanh(1.4 * out[:n])
+    out *= 0.92 / max(1e-9, np.abs(out).max())
+    pcm = (out * 32767).astype("<i2")
+    with wave.open(path, "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(sr)
+        w.writeframes(np.repeat(pcm, 2).tobytes())
+
+
 # ---------------------------------------------------------------- render
 
 def font_opt(font):
@@ -244,7 +343,7 @@ def render_segment(seg, idx, out, W, H, fps, cache, beat=0.4):
     chain += ["setpts=(PTS-STARTPTS)/%.5f" % speed, "fps=%d" % fps,
               "scale=%d:%d:force_original_aspect_ratio=increase" % (W, H),
               "crop=%d:%d" % (W, H)]
-    k = max(2, round(0.2 * fps))  # frames of a snap zoom
+    k = max(1, min(round(0.2 * fps), nframes // 2))  # frames of a snap zoom
     zoom = []
     if "punch" in fx:    # slow push-in
         zoom.append("0.12*on/%d" % nframes)
@@ -254,6 +353,8 @@ def render_segment(seg, idx, out, W, H, fps, cache, beat=0.4):
         zoom.append("0.45*pow(max(0,1-on/%d),2)" % k)
     if "snapout" in fx:  # leave on a hard zoom into the next shot
         zoom.append("0.55*pow(max(0,(on-%d)/%d),2)" % (nframes - k, k))
+    if "zoompulse" in fx:  # zoom bump on every beat
+        zoom.append("0.08*exp(-9*mod(on/%d,%.5f))" % (fps, beat))
     if zoom:
         chain.append("scale=%d:%d,zoompan=z='1+%s':x='iw/2-(iw/zoom/2)':"
                      "y='ih/2-(ih/zoom/2)':d=1:s=%dx%d:fps=%d"
@@ -264,6 +365,14 @@ def render_segment(seg, idx, out, W, H, fps, cache, beat=0.4):
                      % (int(W * 1.05) // 2 * 2, int(H * 1.05) // 2 * 2, W, H))
     if "bw" in fx:
         chain.append("hue=s=0")
+    if "red" in fx:     # blood-red monochrome
+        chain.append("hue=s=0,colorchannelmixer=rr=1.15:gg=0.12:bb=0.10")
+    if "trail" in fx:   # ghost trails on movement
+        chain.append("tmix=frames=4:weights='1 1 1 2'")
+    if "glitch" in fx:  # heavy colour tear on the cut
+        off = max(6, W // 45)
+        chain.append("format=gbrp,rgbashift=rh=-%d:bh=%d:gv=%d:enable='lt(t,0.12)'"
+                     % (off, off, off // 2))
     if "rgb" in fx:     # chromatic split
         off = max(2, W // 180)
         chain.append("format=gbrp,rgbashift=rh=-%d:bh=%d" % (off, off))
@@ -355,7 +464,13 @@ def cmd_render(args):
         music = music if os.path.isabs(music) else os.path.join(base, music)
     else:
         music = os.path.join(work, "score.wav")
-        synth_score(music, float(edl.get("bpm", 150)), total + 1)
+        sc = edl.get("score", {})
+        try:
+            synth_score_np(music, float(edl.get("bpm", 150)), total + 1,
+                           float(sc.get("build", 0)), float(sc.get("drop", 0)),
+                           float(sc.get("break", total)))
+        except ImportError:
+            synth_score(music, float(edl.get("bpm", 150)), total + 1)
 
     # final pass: grade, text, vignette, grain, letterbox, fades, music
     vf = [LOOKS[look]]
@@ -367,6 +482,7 @@ def cmd_render(args):
                           "pos": s.get("text_pos", "center"), "size": s.get("text_size", 1.0),
                           "color": s.get("text_color", "white"),
                           "style": s.get("text_style")})
+    texts = [dict(x) for x in texts]
     texts += edl.get("titles", [])
     if edl.get("tagline"):  # small line held over the whole film, outro excluded
         end = timeline[-1] if outro else total
@@ -380,19 +496,29 @@ def cmd_render(args):
         a = float(tx["at"])
         b = min(total, a + float(tx["dur"]))
         size = int(W * 0.085 * float(tx.get("size", 1.0)))
+        longest = max(len(line) for line in tx["text"].split("\n"))
+        size = min(size, int(W * 0.92 / (0.64 * max(1, longest))))  # never wider than the frame
         ypos = {"top": "h*0.16", "bottom": "h*0.80-text_h"}.get(
             tx.get("pos", "center"), "(h-text_h)/2")
-        layers = [(0, tx.get("color", "white"), True)]
-        if tx.get("style") == "glitch":  # red / cyan fringes behind the main text
+        style = (tx.get("style") or "").split()
+        fsize = str(size)
+        if "slam" in style:    # lands from huge to size in a few frames
+            fsize = "%d*(1+1.4*pow(max(0,1-(t-%.3f)/0.13),2))" % (size, a)
+        elif "push" in style:  # keeps growing while on screen
+            fsize = "%d*(0.86+0.30*(t-%.3f)/%.3f)" % (size, a, max(0.05, b - a))
+        color = tx.get("color", "white")
+        look_opt = ":shadowcolor=black@0.8:shadowx=3:shadowy=3"
+        if "outline" in style:  # hollow letters
+            look_opt = ":borderw=%d:bordercolor=%s" % (max(3, size // 28), color)
+            color = "white@0.0"
+        layers = [(0, color, look_opt)]
+        if "glitch" in style:  # red / cyan fringes behind the main text
             off = max(2, size // 22)
-            layers = [(-off, "red@0.8", False), (off, "cyan@0.8", False)] + layers
-        for dx, color, shadow in layers:
-            vf.append("drawtext=textfile='%s'%s:fontsize=%d:fontcolor=%s:line_spacing=%d:"
-                      "x=(w-text_w)/2+%d:y=%s%s:alpha='min(1,(t-%.3f)/0.10)':"
-                      "enable='between(t,%.3f,%.3f)'"
-                      % (tf, font, size, color, size // 5, dx, ypos,
-                         ":shadowcolor=black@0.8:shadowx=3:shadowy=3" if shadow else "",
-                         a, a, b - 0.001))
+            layers = [(-off, "red@0.8", ""), (off, "cyan@0.8", "")] + layers
+        for dx, col, opt in layers:
+            vf.append("drawtext=textfile='%s'%s:fontsize='%s':fontcolor=%s:line_spacing=%d:"
+                      "x=(w-text_w)/2+%d:y=%s%s:enable='between(t,%.3f,%.3f)'"
+                      % (tf, font, fsize, col, size // 6, dx, ypos, opt, a, b - 0.001))
     if edl.get("vignette", True):
         vf.append("vignette=angle=PI/4.2")
     grain = int(edl.get("grain", 10))
