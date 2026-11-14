@@ -82,12 +82,11 @@ measurements (measure on fully decoded audio, never with `-ss` on a compressed f
 session.
 
 Lyrics as on-screen text need the words from the user: there is no transcription tool here.
-When the user asks for lyrics, they are the **only** text (no titles, cards or outro text of your
-own). Do not print whole lines: the user wants **keywords only**, one huge word per hit ("bang, bang, bang"), about three per line, each full-width (`size` 5–7, `slam`), the last in red.
-Without hearing the vocal, place lines from structure: count bars before the drop against the
-number of verse lines (here 8 lines = 16 bars, two bars per line), find repeating phrase entries
-with the centre-channel harmonic energy per sixteenth, say which placements are deduced rather than
-heard, and ask the user to report any line that is early or late. Keep flattering lyric lines off
+Text budget for this user: **two or three keywords in the whole film and nothing else** — no
+titles, cards or outro text. Take them from the song's lyrics, one huge word or pair per hit, and
+put them on the film's own strong points (last half-bar before the drop, the drop, the final pose),
+not on the vocal: lyric lines placed by analysis were tried and landed at the wrong moments.
+Keep flattering lyric lines off
 the physique shots: the user does not want to look boastful.
 
 If the user's track is shorter than the film (TikTok rips often are, and end with the app's jingle:
