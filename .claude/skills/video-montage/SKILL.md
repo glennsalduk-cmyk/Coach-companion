@@ -25,7 +25,7 @@ scratch in `montage/work/`, result in `montage/output/`.
   (`pulse`, `strobe`, `glow`, `flash`), and put a transition on almost every cut. Editing intensity
   is the priority; restraint is not wanted here.
 - **Big motivational text that slams in** ("mode push"): full-width words (`size` 3–6, `slam`) over
-  the footage on the first beat of a bar, one or two words each, **in English** (the user's choice), alternating white / red
+  the footage on the first beat of a bar, one or two words each, **in English**, and **never boastful**: the user does not want to show off (no "1ST", "EARNED", "THE RESULT"). Use keep-going wording — GET READY, PUSH, ONE MORE, KEEP PUSHING, DO IT AGAIN, KEEP GOING, KEEP DOING IT, NOT DONE YET — alternating white / red
   (`0xE01010`) and plain / `glitch` / `outline`; a slower `push` line over the physique.
 - **Pace**: ½-beat cuts (0.2 s at 150 BPM) are the norm in the session, with ¼-beat (0.1 s) bursts
   of 8 shots at the end of every other bar. Use a small generator script in `montage/work/` to
